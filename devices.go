@@ -21,6 +21,7 @@ type DeviceService interface {
 	ListBGPSessions(deviceID string, listOpt *ListOptions) ([]BGPSession, *Response, error)
 	ListBGPNeighbors(deviceID string, listOpt *ListOptions) ([]BGPNeighbor, *Response, error)
 	ListEvents(string, *ListOptions) ([]Event, *Response, error)
+	ListAll(listOpt *ListOptions) ([]Device, *Response, error)
 }
 
 type devicesRoot struct {
@@ -280,6 +281,40 @@ func (d DeviceActionRequest) String() string {
 // DeviceServiceOp implements DeviceService
 type DeviceServiceOp struct {
 	client *Client
+}
+
+// List returns devices
+func (s *DeviceServiceOp) ListAll(listOpt *ListOptions) (devices []Device, resp *Response, err error) {
+
+	// this needs to be moved elsewhere?
+	const staffBasePath = "/staff"
+	const hardwareBasePath = "hardware"
+
+	params := urlQuery(listOpt)
+	path := fmt.Sprintf("%s/%s?%s", staffBasePath, hardwareBasePath, params)
+
+	for {
+		subset := new(devicesRoot)
+
+		staffHeader := map[string]string{"X-Packet-Staff": "true"}
+		resp, err = s.client.DoRequestWithHeader("GET", staffHeader, path, nil, subset)
+		if err != nil {
+			return nil, resp, err
+		}
+
+		devices = append(devices, subset.Devices...)
+
+		if subset.Meta.Next != nil && (listOpt == nil || listOpt.Page == 0) {
+			path = subset.Meta.Next.Href
+			if params != "" {
+				path = fmt.Sprintf("%s&%s", path, params)
+			}
+			continue
+		}
+
+		return
+	}
+
 }
 
 // List returns devices on a project

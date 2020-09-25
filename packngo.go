@@ -87,6 +87,18 @@ type ListOptions struct {
 	// PerPage is the number of results to return per page for paginated result
 	// sets,
 	PerPage int `url:"per_page,omitempty"`
+
+	// The device plan
+	Plan string `url:"plan,omitempty"`
+
+	// The device state
+	State string `url:"state,omitempty"`
+
+	// The device facility code
+	FacilityCode string `url:"facility,omitempty"`
+
+	// Device reservation status
+	Reserved bool `url:"reserved,omitempty"`
 }
 
 // GetOptions returns GetOptions from ListOptions (and is nil-receiver safe)
@@ -200,6 +212,22 @@ func (l *ListOptions) Params() url.Values {
 	}
 	if l.PerPage != 0 {
 		params.Set("per_page", fmt.Sprintf("%d", l.PerPage))
+	}
+
+	if l.FacilityCode != "" {
+		params.Set("facility", l.FacilityCode)
+	}
+
+	if l.Plan != "" {
+		params.Set("plan", l.Plan)
+	}
+
+	if l.State != "" {
+		params.Set("state", l.State)
+	}
+
+	if l.Reserved {
+		params.Set("reserved", "true")
 	}
 
 	return params
@@ -410,7 +438,7 @@ func dumpResponse(resp *http.Response) {
 func dumpRequest(req *retryablehttp.Request) {
 	o, _ := httputil.DumpRequestOut(req.Request, false)
 	strReq := string(o)
-	reg, _ := regexp.Compile(`X-Auth-Token: (\w*)`)
+	reg, _ := regexp.Compile(`X-(Auth|Consumer)-Token: (\w*)`)
 	reMatches := reg.FindStringSubmatch(strReq)
 	if len(reMatches) == 2 {
 		strReq = strings.Replace(strReq, reMatches[1], strings.Repeat("-", len(reMatches[1])), 1)
